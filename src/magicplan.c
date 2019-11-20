@@ -21,6 +21,9 @@ void _PG_fini(void);
 static PlannedStmt *magicplan_planner(Query *parse, int cursorOptions,
 				ParamListInfo boundParams);
 
+static PlannedStmt *real_plan(Query *parse, int cursorOptions,
+				ParamListInfo boundParams);
+
 void
 _PG_init(void)
 {
@@ -36,7 +39,8 @@ _PG_fini(void)
 	planner_hook = prev_planner;
 }
 
-PlannedStmt *real_plan(Query *parse, int cursorOptions, ParamListInfo boundParams)
+static PlannedStmt *
+real_plan(Query *parse, int cursorOptions, ParamListInfo boundParams)
 {
 	if (prev_planner)
 		return prev_planner(parse, cursorOptions, boundParams);
@@ -48,10 +52,14 @@ static PlannedStmt *
 magicplan_planner(Query *parse, int cursorOptions,
 				  ParamListInfo boundParams)
 {
-	PlannedStmt *plan;
 	Query *parse_backup;
 	PlannedStmt *best_plan = NULL;
-	Const *zero_const = makeConst(INT8OID,
+	BoolExpr *and_clause;
+	ListCell   *lc;
+	Expr *and_node;
+	SubLink *sublink;
+	PlannedStmt *new_plan;
+	Node *zero_const = (Node *) makeConst(INT8OID,
                                       -1,
                                       InvalidOid,
                                       sizeof(int64),
@@ -66,18 +74,17 @@ magicplan_planner(Query *parse, int cursorOptions,
 	// We will handle only an AND in the quals
 	if (parse->jointree->quals->type != T_BoolExpr)
 		goto plan_and_run;
-	BoolExpr *and_clause = (BoolExpr*) parse->jointree->quals;
+	and_clause = (BoolExpr*) parse->jointree->quals;
 	if (and_clause->boolop != AND_EXPR)
 		goto plan_and_run;
 	// We must check if our AND contains an EXISTS
-	ListCell   *lc;
 	foreach(lc, and_clause->args)
         {
-		Expr *and_node = (Expr *) lfirst(lc);
+		and_node = (Expr *) lfirst(lc);
 		if (and_node->type == T_SubLink)
 		{
 			// It's a sublink, is it an exists of a query with no offset ?
-			SubLink *sublink = (SubLink *) and_node;
+			sublink = (SubLink *) and_node;
 			if ((sublink->subLinkType == EXISTS_SUBLINK) && (sublink->subselect->type == T_Query))
 			{
 				Query *subquery = (Query*) (sublink->subselect);
@@ -91,7 +98,7 @@ magicplan_planner(Query *parse, int cursorOptions,
 				subquery->limitOffset = zero_const;
 
 				elog(WARNING, "Planning with an OFFSET 0");
-				PlannedStmt *new_plan = real_plan(parse, cursorOptions, boundParams);
+				new_plan = real_plan(parse, cursorOptions, boundParams);
 				if (best_plan != NULL)
 				{
 					if (new_plan->planTree->total_cost < best_plan->planTree->total_cost)
@@ -112,7 +119,7 @@ plan_and_run:
 	if (best_plan != NULL)
 	{
 		elog(WARNING, "Planning the virg^W pristine (bravo) query");
-		PlannedStmt *new_plan = real_plan(parse, cursorOptions, boundParams);
+		new_plan = real_plan(parse, cursorOptions, boundParams);
 		if (new_plan->planTree->total_cost < best_plan->planTree->total_cost)
 		{
 			elog(WARNING, "I kept the pristine one");
