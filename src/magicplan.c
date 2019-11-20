@@ -9,6 +9,7 @@
 #include "commands/explain.h"
 #include "optimizer/planner.h"
 #include "catalog/pg_type_d.h"
+#include "nodes/makefuncs.h"
 
 PG_MODULE_MAGIC;
 
@@ -50,6 +51,13 @@ magicplan_planner(Query *parse, int cursorOptions,
 	PlannedStmt *plan;
 	Query *parse_backup;
 	PlannedStmt *best_plan = NULL;
+	Const *zero_const = makeConst(INT8OID,
+                                      -1,
+                                      InvalidOid,
+                                      sizeof(int64),
+                                      Int64GetDatum(0),
+                                      false,
+                                      true);
 
 	if (!parse->jointree)
 		goto plan_and_run;
@@ -79,15 +87,9 @@ magicplan_planner(Query *parse, int cursorOptions,
 				// We got one !
 				elog(WARNING, "We got an exists !");
 				parse_backup = copyObject(parse);
-#if 0
-				subquery->limitOffset = makeConst(INT4OID,
-                                                                  -1,
-                                                                  InvalidOid,
-                                                                  sizeof(int32),
-                                                                  Int32GetDatum(0),
-                                                                  false,
-                                                                  true); /* pass by value */
-#endif
+
+				subquery->limitOffset = zero_const;
+
 				elog(WARNING, "Planning with an OFFSET 0");
 				PlannedStmt *new_plan = real_plan(parse, cursorOptions, boundParams);
 				if (best_plan != NULL)
@@ -112,9 +114,15 @@ plan_and_run:
 		elog(WARNING, "Planning the virg^W pristine (bravo) query");
 		PlannedStmt *new_plan = real_plan(parse, cursorOptions, boundParams);
 		if (new_plan->planTree->total_cost < best_plan->planTree->total_cost)
+		{
+			elog(WARNING, "I kept the pristine one");
 			return new_plan;
+		}
 		else
+		{
+			elog(WARNING, "I beat him");
 			return best_plan;
+		}
 	}
 	return real_plan(parse, cursorOptions, boundParams);
 }
