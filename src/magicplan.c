@@ -48,6 +48,7 @@ magicplan_planner(Query *parse, int cursorOptions,
 				  ParamListInfo boundParams)
 {
 	PlannedStmt *plan;
+	Query *parse_backup;
 	PlannedStmt *best_plan = NULL;
 
 	if (!parse->jointree)
@@ -77,6 +78,7 @@ magicplan_planner(Query *parse, int cursorOptions,
 
 				// We got one !
 				elog(WARNING, "We got an exists !");
+				parse_backup = copyObject(parse);
 #if 0
 				subquery->limitOffset = makeConst(INT4OID,
                                                                   -1,
@@ -97,8 +99,8 @@ magicplan_planner(Query *parse, int cursorOptions,
 				{
 					best_plan = new_plan;
 				}
-				// Reset the node for the next attempts
-				subquery->limitOffset = NULL;
+				// Reset for the next attempts
+				parse = parse_backup;
 			}
 		}
         }
