@@ -116,7 +116,7 @@ magicplan_planner(Query *parse, int cursorOptions,
 				parse = parse_backup;
 			}
 		}
-        }
+	}
 
 
 plan_and_run:
