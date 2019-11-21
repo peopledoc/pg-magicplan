@@ -1,20 +1,17 @@
 {
-   "name": "magicplan",
-   "abstract": "Hooo smoking !",
-   "description": "Somebody stop me",
-   "version": "0.0.2",
-   "maintainer": "Pete the cuban beat",
+   "name": "pg-magicplan",
+   "abstract": "Try to work around the optimizer limitations regarding subqueries in EXISTS",
+   "description": "Compare the plans with and without an optimization 'fence' in subqueries in order to choose (sometimes vastly) better plans",
+   "version": "0.0.1",
+   "maintainer": "Pierre Ducroquet",
    "license": "postgresql",
    "provides": {
       "magicplan": {
-         "abstract": "Craze of manhattan street",
+         "abstract": "Try to work around the optimizer limitations regarding subqueries in EXISTS",
          "version": "0.0.1"
       }
    },
    "release_status": "unstable",
-
-   "generated_by": "King of the rumba beat",
-
 
    "meta-spec": {
       "version": "1.0.0",
