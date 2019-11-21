@@ -59,13 +59,7 @@ magicplan_planner(Query *parse, int cursorOptions,
 	Expr *and_node;
 	SubLink *sublink;
 	PlannedStmt *new_plan;
-	Node *zero_const = (Node *) makeConst(INT8OID,
-                                      -1,
-                                      InvalidOid,
-                                      sizeof(int64),
-                                      Int64GetDatum(0),
-                                      false,
-                                      true);
+	Node *zero_const = NULL;
 
 	if (!parse->jointree)
 		goto plan_and_run;
@@ -77,9 +71,10 @@ magicplan_planner(Query *parse, int cursorOptions,
 	and_clause = (BoolExpr*) parse->jointree->quals;
 	if (and_clause->boolop != AND_EXPR)
 		goto plan_and_run;
+
 	// We must check if our AND contains an EXISTS
 	foreach(lc, and_clause->args)
-        {
+	{
 		and_node = (Expr *) lfirst(lc);
 		if (and_node->type == T_SubLink)
 		{
@@ -94,6 +89,15 @@ magicplan_planner(Query *parse, int cursorOptions,
 				// We got one !
 				elog(WARNING, "We got an exists !");
 				parse_backup = copyObject(parse);
+
+				if (!zero_const)
+					zero_const = (Node *) makeConst(INT8OID,
+					                              -1,
+					                              InvalidOid,
+					                              sizeof(int64),
+					                              Int64GetDatum(0),
+					                              false,
+					                              true);
 
 				subquery->limitOffset = zero_const;
 
