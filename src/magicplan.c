@@ -61,16 +61,13 @@ magicplan_planner(Query *parse, int cursorOptions,
 	PlannedStmt *new_plan;
 	Node *zero_const = NULL;
 
-	if (!parse->jointree)
-		goto plan_and_run;
-	if (!parse->jointree->quals)
-		goto plan_and_run;
+	if (!parse->jointree || !parse->jointree->quals || parse->jointree->quals->type != T_BoolExpr)
+		return real_plan(parse, cursorOptions, boundParams);
+
 	// We will handle only an AND in the quals
-	if (parse->jointree->quals->type != T_BoolExpr)
-		goto plan_and_run;
 	and_clause = (BoolExpr*) parse->jointree->quals;
 	if (and_clause->boolop != AND_EXPR)
-		goto plan_and_run;
+		return real_plan(parse, cursorOptions, boundParams);
 
 	// We must check if our AND contains an EXISTS
 	foreach(lc, and_clause->args)
@@ -87,7 +84,6 @@ magicplan_planner(Query *parse, int cursorOptions,
 					continue;
 
 				// We got one !
-				elog(WARNING, "We got an exists !");
 				parse_backup = copyObject(parse);
 
 				if (!zero_const)
@@ -101,7 +97,6 @@ magicplan_planner(Query *parse, int cursorOptions,
 
 				subquery->limitOffset = zero_const;
 
-				elog(WARNING, "Planning with an OFFSET 0");
 				new_plan = real_plan(parse, cursorOptions, boundParams);
 				if (best_plan != NULL)
 				{
@@ -118,11 +113,8 @@ magicplan_planner(Query *parse, int cursorOptions,
 		}
 	}
 
-
-plan_and_run:
 	if (best_plan != NULL)
 	{
-		elog(WARNING, "Planning the virg^W pristine (bravo) query");
 		new_plan = real_plan(parse, cursorOptions, boundParams);
 		if (new_plan->planTree->total_cost < best_plan->planTree->total_cost)
 		{
