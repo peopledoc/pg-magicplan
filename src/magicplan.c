@@ -118,12 +118,12 @@ magicplan_planner(Query *parse, int cursorOptions,
 		new_plan = real_plan(parse, cursorOptions, boundParams);
 		if (new_plan->planTree->total_cost < best_plan->planTree->total_cost)
 		{
-			elog(WARNING, "I kept the pristine one");
+			elog(NOTICE, "magicplan - kept the pristine plan");
 			return new_plan;
 		}
 		else
 		{
-			elog(WARNING, "I beat him");
+			elog(WARNING, "magicplan - injected an OFFSET 0");
 			return best_plan;
 		}
 	}
