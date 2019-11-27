@@ -27,7 +27,7 @@ static PlannedStmt *real_plan(Query *parse, int cursorOptions,
 void
 _PG_init(void)
 {
-	/* Install hookds. */
+	/* Install hooks. */
 	prev_planner = planner_hook;
 	planner_hook = magicplan_planner;
 }

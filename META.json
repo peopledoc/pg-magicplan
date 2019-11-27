@@ -2,13 +2,13 @@
    "name": "pg-magicplan",
    "abstract": "Try to work around the optimizer limitations regarding subqueries in EXISTS",
    "description": "Compare the plans with and without an optimization 'fence' in subqueries in order to choose (sometimes vastly) better plans",
-   "version": "0.0.1",
+   "version": "1.0",
    "maintainer": "Pierre Ducroquet",
    "license": "postgresql",
    "provides": {
       "magicplan": {
          "abstract": "Try to work around the optimizer limitations regarding subqueries in EXISTS",
-         "version": "0.0.1"
+         "version": "1.0"
       }
    },
    "release_status": "unstable",
