@@ -1,0 +1,26 @@
+Source: postgresql-magicplan
+Section: database
+Priority: optional
+Maintainer: Pierre Ducroquet <pierre_ducroquet@ultimatesoftware.com>
+Uploaders:
+ Pierre Ducroquet <pierre_ducroquet@ultimatesoftware.com>,
+Build-Depends:
+ debhelper (>= 9),
+ postgresql-server-dev-all,
+Standards-Version: 4.1.0
+Homepage: https://github.com/peopledoc/pg-magicplan/
+Vcs-Git: https://github.com/peopledoc/pg-magicplan.git
+Vcs-Browser: https://github.com/peopledoc/pg-magicplan/
+
+Package: postgresql-PGVERSION-magicplan
+Architecture: any
+Depends:
+ postgresql-PGVERSION,
+ ${misc:Depends},
+ ${shlibs:Depends},
+Description: Postgres PGVERSION Magic Plan
+ postgresql-magicplan is a PostgreSQL extension implementing a planner hook to
+ force the optimizer to understand that a subquery is not always to be inlined.
+ .
+ This package is for PostgreSQL PGVERSION.
+
