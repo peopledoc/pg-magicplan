@@ -8,7 +8,7 @@
 
 #include "commands/explain.h"
 #include "optimizer/planner.h"
-#include "catalog/pg_type_d.h"
+#include "catalog/pg_type.h"
 #include "nodes/makefuncs.h"
 
 PG_MODULE_MAGIC;
