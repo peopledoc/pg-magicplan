@@ -23,3 +23,13 @@ in every EXISTS subquery, and we execute only the best plan we found.
 
 This solution is only a workaround. We are documenting the situation before
 doing a proper bugreport along with, if possible, a way to reproduce the issue.
+
+# Building debian package with new PG version
+
+All these are done in the proper debian chroot.
+
+1) make sure you've updated your postgresql-common and postgresql-server-dev-all packages
+2) update the debian/pgversions file
+3) `pg_buildext updatecontrol`
+4) `debuild -us -uc`
+
