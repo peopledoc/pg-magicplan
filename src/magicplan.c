@@ -18,11 +18,17 @@ static planner_hook_type prev_planner = NULL;
 void _PG_init(void);
 void _PG_fini(void);
 
-static PlannedStmt *magicplan_planner(Query *parse, int cursorOptions,
-				ParamListInfo boundParams);
+#if PG_VERSION_NUM >= 130000
+#define HOOK_ARGS Query *parse, const char* queryString, int cursorOptions, ParamListInfo boundParams
+#define HOOK_PARAMS parse, queryString, cursorOptions, boundParams
+#else
+#define HOOK_ARGS Query *parse, int cursorOptions, ParamListInfo boundParams
+#define HOOK_PARAMS parse, cursorOptions, boundParams
+#endif
 
-static PlannedStmt *real_plan(Query *parse, int cursorOptions,
-				ParamListInfo boundParams);
+static PlannedStmt *magicplan_planner(HOOK_ARGS);
+
+static PlannedStmt *real_plan(HOOK_ARGS);
 
 void
 _PG_init(void)
@@ -40,17 +46,16 @@ _PG_fini(void)
 }
 
 static PlannedStmt *
-real_plan(Query *parse, int cursorOptions, ParamListInfo boundParams)
+real_plan(HOOK_ARGS)
 {
 	if (prev_planner)
-		return prev_planner(parse, cursorOptions, boundParams);
+		return prev_planner(HOOK_PARAMS);
 	else
-		return standard_planner(parse, cursorOptions, boundParams);
+		return standard_planner(HOOK_PARAMS);
 }
 
 static PlannedStmt *
-magicplan_planner(Query *parse, int cursorOptions,
-				  ParamListInfo boundParams)
+magicplan_planner(HOOK_ARGS)
 {
 	Query *parse_backup;
 	PlannedStmt *best_plan = NULL;
@@ -62,12 +67,12 @@ magicplan_planner(Query *parse, int cursorOptions,
 	Node *zero_const = NULL;
 
 	if (!parse->jointree || !parse->jointree->quals || parse->jointree->quals->type != T_BoolExpr)
-		return real_plan(parse, cursorOptions, boundParams);
+		return real_plan(HOOK_PARAMS);
 
 	// We will handle only an AND in the quals
 	and_clause = (BoolExpr*) parse->jointree->quals;
 	if (and_clause->boolop != AND_EXPR)
-		return real_plan(parse, cursorOptions, boundParams);
+		return real_plan(HOOK_PARAMS);
 
 	// We must check if our AND contains an EXISTS
 	foreach(lc, and_clause->args)
@@ -97,7 +102,7 @@ magicplan_planner(Query *parse, int cursorOptions,
 
 				subquery->limitOffset = zero_const;
 
-				new_plan = real_plan(parse, cursorOptions, boundParams);
+				new_plan = real_plan(HOOK_PARAMS);
 				if (best_plan != NULL)
 				{
 					if (new_plan->planTree->total_cost < best_plan->planTree->total_cost)
@@ -115,7 +120,7 @@ magicplan_planner(Query *parse, int cursorOptions,
 
 	if (best_plan != NULL)
 	{
-		new_plan = real_plan(parse, cursorOptions, boundParams);
+		new_plan = real_plan(HOOK_PARAMS);
 		if (new_plan->planTree->total_cost < best_plan->planTree->total_cost)
 		{
 			elog(NOTICE, "magicplan - kept the pristine plan");
@@ -127,6 +132,6 @@ magicplan_planner(Query *parse, int cursorOptions,
 			return best_plan;
 		}
 	}
-	return real_plan(parse, cursorOptions, boundParams);
+	return real_plan(HOOK_PARAMS);
 }
 
