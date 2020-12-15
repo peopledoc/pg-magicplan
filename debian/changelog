@@ -1,3 +1,9 @@
+postgresql-magicplan (0.2-1) UNRELEASED; urgency=medium
+
+  * Add GUCs and costs in logs
+
+ -- Pierre Ducroquet <pierre_ducroquet@ultimatesoftware.com>  Thu, 12 Dec 2019 10:34:22 +0100
+
 postgresql-magicplan (0.1-1) UNRELEASED; urgency=medium
 
   * First version

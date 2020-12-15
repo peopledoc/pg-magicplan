@@ -10,6 +10,7 @@
 #include "optimizer/planner.h"
 #include "catalog/pg_type.h"
 #include "nodes/makefuncs.h"
+#include "utils/guc.h"
 
 PG_MODULE_MAGIC;
 
@@ -26,9 +27,13 @@ void _PG_fini(void);
 #define HOOK_PARAMS parse, cursorOptions, boundParams
 #endif
 
+/* Hook function adresses */
 static PlannedStmt *magicplan_planner(HOOK_ARGS);
-
 static PlannedStmt *real_plan(HOOK_ARGS);
+
+/* GUC variables */
+bool magicplan_enabled;
+double magicplan_threshold;
 
 void
 _PG_init(void)
@@ -36,6 +41,17 @@ _PG_init(void)
 	/* Install hooks. */
 	prev_planner = planner_hook;
 	planner_hook = magicplan_planner;
+
+	/* Setup guc */
+	DefineCustomBoolVariable("magicplan.enabled",
+		"Sets whether magicplan should try to optimize the plans.", NULL /* long desc */,
+		&magicplan_enabled, true /* default */,
+		PGC_USERSET, 0 /* flags */, NULL /* check_hook */, NULL /* assign_hook */, NULL /* show_hook */);
+
+	DefineCustomRealVariable("magicplan.threshold",
+		"Threshold required to inject the OFFSET 0 in the query.", "The total_cost of old_plan / new_plan must be over this threshold for the new plan to be used.",
+		&magicplan_threshold, 1.0 /* default */, 0.0 /* min */, 1000.0 /* max, to be confirmed */,
+		PGC_USERSET, 0 /* flags */, NULL /* check_hook */, NULL /* assign_hook */, NULL /* show_hook */);
 }
 
 void
@@ -65,6 +81,9 @@ magicplan_planner(HOOK_ARGS)
 	SubLink *sublink;
 	PlannedStmt *new_plan;
 	Node *zero_const = NULL;
+
+	if (!magicplan_enabled)
+		return real_plan(HOOK_PARAMS);
 
 	if (!parse->jointree || !parse->jointree->quals || parse->jointree->quals->type != T_BoolExpr)
 		return real_plan(HOOK_PARAMS);
@@ -121,14 +140,14 @@ magicplan_planner(HOOK_ARGS)
 	if (best_plan != NULL)
 	{
 		new_plan = real_plan(HOOK_PARAMS);
-		if (new_plan->planTree->total_cost < best_plan->planTree->total_cost)
+		if ((new_plan->planTree->total_cost / best_plan->planTree->total_cost) <= magicplan_threshold)
 		{
-			elog(DEBUG1, "magicplan - kept the pristine plan");
+			elog(DEBUG1, "magicplan - kept the pristine plan, pristine=%f vs 'optimized'=%f", new_plan->planTree->total_cost, best_plan->planTree->total_cost);
 			return new_plan;
 		}
 		else
 		{
-			elog(DEBUG1, "magicplan - injected an OFFSET 0");
+			elog(DEBUG1, "magicplan - injected an OFFSET 0, pristine=%f vs 'optimized'=%f", new_plan->planTree->total_cost, best_plan->planTree->total_cost);
 			return best_plan;
 		}
 	}
