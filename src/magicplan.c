@@ -142,12 +142,12 @@ magicplan_planner(HOOK_ARGS)
 		new_plan = real_plan(HOOK_PARAMS);
 		if ((new_plan->planTree->total_cost / best_plan->planTree->total_cost) <= magicplan_threshold)
 		{
-			elog(DEBUG1, "magicplan - kept the pristine plan");
+			elog(DEBUG1, "magicplan - kept the pristine plan, pristine=%f vs 'optimized'=%f", new_plan->planTree->total_cost, best_plan->planTree->total_cost);
 			return new_plan;
 		}
 		else
 		{
-			elog(DEBUG1, "magicplan - injected an OFFSET 0");
+			elog(DEBUG1, "magicplan - injected an OFFSET 0, pristine=%f vs 'optimized'=%f", new_plan->planTree->total_cost, best_plan->planTree->total_cost);
 			return best_plan;
 		}
 	}
