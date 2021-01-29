@@ -114,9 +114,14 @@ find_best_query(magicplan_mutator_context * context, Query* candidate)
 {
 	Query * previous_context_query = context->current_query;
 	PlannedStmt *candidate_plan;
+	/* We always need to copy the query before planning it, because the planner
+	 * will change the query (replacing sublinks by subplans, among other
+	 * things)
+	 */
 	context->current_query = copyObject(candidate);
 	candidate_plan = real_plan(context);
 	context->current_query = previous_context_query;
+	/* Only keep the mutation if it's worthwile. */
 	if (context->best_plan == NULL ||
 	   (candidate_plan->planTree->total_cost <= context->best_plan->planTree->total_cost))
 	{
@@ -172,7 +177,11 @@ magicplan_mutator (Node *node, magicplan_mutator_context *context)
 													  Int64GetDatum(0),
 													  false,
 													  true);
-				/* Plan the new query, and store the result */
+				/* Plan the new query, and store the result.
+				 * We are always starting with the current best_query: this
+				 * means that individually worthwile OFFSET additions will stack
+				 * among the tree traversal.
+				 */
 				sublink->subselect = (Node *) newquery;
 				find_best_query(context, context->best_query);
 			}
