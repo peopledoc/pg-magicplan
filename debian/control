@@ -47,3 +47,15 @@ Description: Postgres 12 Magic Plan
  force the optimizer to understand that a subquery is not always to be inlined.
  .
  This package is for PostgreSQL 12.
+
+Package: postgresql-13-magicplan
+Architecture: any
+Depends:
+ postgresql-13,
+ ${misc:Depends},
+ ${shlibs:Depends},
+Description: Postgres 13 Magic Plan
+ postgresql-magicplan is a PostgreSQL extension implementing a planner hook to
+ force the optimizer to understand that a subquery is not always to be inlined.
+ .
+ This package is for PostgreSQL 13.
