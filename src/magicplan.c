@@ -65,6 +65,7 @@ static PlannedStmt *real_plan(magicplan_mutator_context *context);
  * */
 bool magicplan_enabled;
 double magicplan_threshold;
+double magicplan_ignore_cost_below;
 
 
 Node* magicplan_mutator (Node *node, magicplan_mutator_context *context);
@@ -86,6 +87,11 @@ _PG_init(void)
 	DefineCustomRealVariable("magicplan.threshold",
 		"Threshold required to inject the OFFSET 0 in the query.", "The total_cost of old_plan / new_plan must be over this threshold for the new plan to be used.",
 		&magicplan_threshold, 1.0 /* default */, 0.0 /* min */, 10000.0 /* max, to be confirmed */,
+		PGC_USERSET, 0 /* flags */, NULL /* check_hook */, NULL /* assign_hook */, NULL /* show_hook */);
+
+	DefineCustomRealVariable("magicplan.ignore_cost_below",
+		"Threshold cost required to have magic plan do anything at all", "If the base query cost is below this threshold, don't to anything.",
+		&magicplan_ignore_cost_below, 2000.0 /* default */, 0.0 /* min */, 100000000.0 /* max, to be confirmed */,
 		PGC_USERSET, 0 /* flags */, NULL /* check_hook */, NULL /* assign_hook */, NULL /* show_hook */);
 }
 
@@ -214,8 +220,8 @@ magicplan_planner(HOOK_ARGS)
 	/* Plan the original query for future reference */
 	mutator_context.current_query = backup;
 	mutator_context.base_plan = real_plan(&mutator_context);
-
-	if (!magicplan_enabled)
+	base_cost = mutator_context.base_plan->planTree->total_cost;
+	if (!magicplan_enabled || base_cost < magicplan_ignore_cost_below)
 		return mutator_context.base_plan;
 
 	/* Walk the query tree, and replace the EXISTS() with an EXISTS(... OFFSET
@@ -230,7 +236,6 @@ magicplan_planner(HOOK_ARGS)
 	{
 		return mutator_context.base_plan;
 	}
-	base_cost = mutator_context.base_plan->planTree->total_cost;
 	best_cost = mutator_context.best_plan->planTree->total_cost;
 
 	if ((base_cost / best_cost) <= magicplan_threshold)

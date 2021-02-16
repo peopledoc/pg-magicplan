@@ -1,3 +1,10 @@
+postgresql-magicplan (0.4-1) UNRELEASED; urgency=medium
+
+  * Add a GUC to prevent magic plan on cheap queries
+
+ -- Ronan Dunklau   <ronan.dunklau@ukg.com>  Tue, 16 Feb 2021 11:00:48 +0100
+
+
 postgresql-magicplan (0.3-1) UNRELEASED; urgency=medium
 
   * Apply the optimization everywhere in the query.
